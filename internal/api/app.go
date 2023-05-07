@@ -37,12 +37,12 @@ func (a *App) Initialize(config *config.Config) {
 
 	a.DB = model.DBMigrate(db)
 	a.Router = httprouter.New()
-	a.setRouters()
+	a.SetRouters()
 }
 
 // https://github.com/gin-gonic/gin/issues/1681
 // Set all required routers
-func (a *App) setRouters() {
+func (a *App) SetRouters() {
 	router := a.Router
 	// Routing for handling the projects
 	router.GET("/servers/get_hostname/:thresh", a.GetServerHostname)

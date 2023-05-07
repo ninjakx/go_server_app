@@ -46,6 +46,15 @@ with coverage:
 
 ## PostgresSQL DB:
 
+**To make them sorted and in an order by ID:**
+
+```bash
+UPDATE servers m
+SET id = sub.rn
+from (SELECT id, row_number() OVER (ORDER BY id, id) AS rn FROM servers)sub
+WHERE  m.id = sub.id;
+```
+
 **DB:**
 
 ![](https://github.com/ninjakx/go_server_app/blob/bc43e9c47ee3533fbb7b37994aaa5125821be6c9/Images4Readme/psql_db.png?raw=true)

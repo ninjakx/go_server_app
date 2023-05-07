@@ -1,4 +1,4 @@
-# GO_APP
+# mta-hosting-optimizer
 ### API
 
 ```go
@@ -48,5 +48,14 @@ with coverage:
 
 **DB:**
 
-![]()
+![](https://github.com/ninjakx/go_server_app/blob/bc43e9c47ee3533fbb7b37994aaa5125821be6c9/Images4Readme/psql_db.png?raw=true)
 
+**API for getting hostnames with threshold:**
+
+![](https://github.com/ninjakx/go_server_app/blob/main/Images4Readme/query_thresh.png?raw=true)
+
+**Code coverage:**
+
+Due to logging the error: Unit test coverage can't be more than `61.6%`. It's good to log the error so introducing those will reduce the coverage as can be seen from the image (red part-> not covered in unit test)
+
+![](https://github.com/ninjakx/go_server_app/blob/main/Images4Readme/code_coverage.png?raw=true)

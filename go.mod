@@ -1,6 +1,6 @@
-module mta-hosting-optimizer
+module GO_APP
 
-go 1.19
+go 1.14
 
 require (
 	github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557 // indirect

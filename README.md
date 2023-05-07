@@ -1,4 +1,14 @@
 # mta-hosting-optimizer
+
+Integration test has been removed as it was taking real DB. Works fine in localhost:
+
+Golang reflect works only for ordered string/slice/struct even if the elements are same but in random order. It won't get matched with the output. If we are using update then in integration test our expected and actual might won't match as order will get change in updation.
+
+In unit test we are using mock db so will work fine there.
+Api folder has integration test and result are as follows:
+
+![](https://github.com/ninjakx/mta-hosting-optimizer/blob/main/Images4Readme/integration_test.png?raw=true)
+
 ### API
 
 ```go

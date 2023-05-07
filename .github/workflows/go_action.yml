@@ -20,9 +20,6 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: 1.14
-
-    - name: Go mod Tidy
-      run: go mod tidy
       
     - name: Build
       run: go build -v ./...

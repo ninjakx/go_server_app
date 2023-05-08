@@ -1,5 +1,7 @@
 # mta-hosting-optimizer
 
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fninjakx%2Fmta-hosting-optimizer&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+
 Integration test has been removed as it was taking real DB. Works fine in localhost:
 
 Golang reflect works only for ordered string/slice/struct even if the elements are same but in random order. It won't get matched with the output. If we are using update then in integration test our expected and actual might won't match as order will get change in updation.

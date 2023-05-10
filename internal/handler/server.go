@@ -3,7 +3,6 @@ package handler
 import (
 	"GO_APP/internal/model"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -52,13 +51,13 @@ func GetServerHostName(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][GetServerHostName][db.Table] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	err = respondJSON(c, http.StatusOK, hostnames)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][GetServerHostName][respondJSON] error:%+v\n", err)
-		return
 	}
 }
 
@@ -71,6 +70,7 @@ func CreateServer(db *gorm.DB, c *gin.Context) {
 	if err := decoder.Decode(&server); err != nil {
 		log.Printf("[server][CreateServer][decoder.Decode] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	// Begin transaction
@@ -88,12 +88,12 @@ func CreateServer(db *gorm.DB, c *gin.Context) {
 		tx.Rollback()
 		log.Printf("[server][CreateServer][db.Create] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][CreateServer][respondJSON] error:%+v\n", err)
-		return
 	}
 }
 
@@ -103,13 +103,13 @@ func GetAllServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][GetAllServer][db.Find] error:%+v\n", err)
 		respondError(c, http.StatusNotFound, err.Error())
+		return
 	}
 
 	err = respondJSON(c, http.StatusOK, servers)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][GetAllServer][respondJson] error:%+v\n", err)
-		return
 	}
 }
 
@@ -119,14 +119,14 @@ func GetServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][GetServer][strconv.Atoi] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 	server, err := getServerOr404(db, id, c)
 	if err != nil {
 		log.Printf("[server][GetServer][getServerOr404] error:%+v\n", err)
 		respondError(c, http.StatusNotFound, err.Error())
+		return
 	}
-
-	fmt.Printf("$$$:%+v", server)
 
 	if server != nil {
 		err = respondJSON(c, http.StatusOK, server)
@@ -135,7 +135,6 @@ func GetServer(db *gorm.DB, c *gin.Context) {
 			log.Printf("[server][GetServer][respondJSON] error:%+v\n", err)
 		}
 	}
-	return
 
 }
 
@@ -146,6 +145,7 @@ func UpdateServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][UpdateServer][strconv.Atoi] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	// Begin transaction
@@ -160,12 +160,14 @@ func UpdateServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][UpdateServer][getServerOr404] error:%+v\n", err)
 		respondError(c, http.StatusNotFound, err.Error())
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&server); err != nil {
 		log.Printf("[server][UpdateServer][decoder.Decode] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 	defer r.Body.Close()
 
@@ -175,12 +177,12 @@ func UpdateServer(db *gorm.DB, c *gin.Context) {
 		tx.Rollback()
 		log.Printf("[server][UpdateServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][UpdateServer][respondJSON] error:%+v\n", err)
-		return
 	}
 
 }
@@ -191,6 +193,7 @@ func DisableServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][DisableServer][strconv.Atoi] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 	// Begin transaction
 	tx := db.Begin()
@@ -204,6 +207,7 @@ func DisableServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][DisableServer][getServerOr404] error:%+v\n", err)
 		respondError(c, http.StatusNotFound, err.Error())
+		return
 	}
 
 	server.Disable()
@@ -214,12 +218,12 @@ func DisableServer(db *gorm.DB, c *gin.Context) {
 		tx.Rollback()
 		log.Printf("[server][DisableServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][DisableServer][respondJSON] error:%+v\n", err)
-		return
 	}
 
 }
@@ -230,6 +234,7 @@ func EnableServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][EnableServer][strconv.Atoi] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 	// Begin transaction
 	tx := db.Begin()
@@ -243,6 +248,7 @@ func EnableServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][EnableServer][getServerOr404] error:%+v\n", err)
 		respondError(c, http.StatusNotFound, err.Error())
+		return
 	}
 
 	server.Enable()
@@ -253,12 +259,12 @@ func EnableServer(db *gorm.DB, c *gin.Context) {
 		tx.Rollback()
 		log.Printf("[server][EnableServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][EnableServer][respondJSON] error:%+v\n", err)
-		return
 	}
 }
 
@@ -268,6 +274,7 @@ func DeleteServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][DeleteServer][strconv.Atoi] error:%+v\n", err)
 		respondError(c, http.StatusBadRequest, err.Error())
+		return
 	}
 	// Begin transaction
 	tx := db.Begin()
@@ -281,6 +288,7 @@ func DeleteServer(db *gorm.DB, c *gin.Context) {
 	if err != nil {
 		log.Printf("[server][DeleteServer][getServerOr404] error:%+v\n", err)
 		respondError(c, http.StatusNotFound, err.Error())
+		return
 	}
 
 	err = tx.Delete(&model.Server{}, id).Error
@@ -289,6 +297,7 @@ func DeleteServer(db *gorm.DB, c *gin.Context) {
 		tx.Rollback()
 		log.Printf("[server][DeleteServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 	err = respondJSON(c, http.StatusOK, nil)
 	if err != nil {

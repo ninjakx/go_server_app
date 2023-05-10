@@ -2,30 +2,29 @@ package handler
 
 import (
 	"GO_APP/internal/model"
-	"GO_APP/internal/queries"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
+	"gorm.io/gorm"
 )
 
 // getServerOr404 gets a Server instance if exists, or respond the 404 error otherwise
-func getServerOr404(db *sqlx.DB, id int, w http.ResponseWriter) (*model.Server, error) {
+func getServerOr404(db *gorm.DB, id int, c *gin.Context) (*model.Server, error) {
 	server := model.Server{}
-	err := db.Get(&server, queries.QueryFindServer, id)
+	err := db.Where("id = ?", id).First(&server).Error
 	if err != nil {
-		log.Printf("[server][getServerOr404][db.Get] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		return nil, err
 	}
 	return &server, err
 }
 
-func GetServerHostName(db *sqlx.DB, w http.ResponseWriter, ps httprouter.Params) {
-	hostnames := []string{}
+func GetServerHostName(db *gorm.DB, c *gin.Context) {
+	ps := c.Params
 	thresh, err := strconv.Atoi(ps.ByName("thresh"))
 	if err != nil {
 		// pass default value
@@ -33,48 +32,64 @@ func GetServerHostName(db *sqlx.DB, w http.ResponseWriter, ps httprouter.Params)
 		log.Printf("[server][GetServerHostName][strconv.Atoi] error:%+v\n", err)
 		// respondError(w, http.StatusBadRequest, err.Error())
 	}
-	tx := db.MustBegin()
-	tx.Select(&hostnames, queries.QueryGetAllHostnameWithThresh, thresh)
-	err = tx.Commit()
+
+	// Begin transaction
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	hostnames := []string{}
+	err = tx.Table("servers").
+		Select("hostname as Hostnames").
+		Group("hostname").
+		Having("COUNT(CASE WHEN active THEN 1 END) <= ?", thresh).
+		Scan(&hostnames).Error
+	tx.Commit()
+
 	if err != nil {
-		log.Printf("[server][GetServerHostName][tx.Commit] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("[server][GetServerHostName][db.Table] error:%+v\n", err)
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
 
-	err = respondJSON(w, http.StatusOK, hostnames)
+	err = respondJSON(c, http.StatusOK, hostnames)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][GetServerHostName][respondJSON] error:%+v\n", err)
 		return
 	}
-
 }
 
-func CreateServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
+func CreateServer(db *gorm.DB, c *gin.Context) {
 	server := model.Server{}
-
+	r := c.Request
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 
 	if err := decoder.Decode(&server); err != nil {
 		log.Printf("[server][CreateServer][decoder.Decode] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
 
 	// Begin transaction
-	tx, err := db.Beginx()
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	err := tx.Create(&server).Error
+	tx.Commit()
+
 	if err != nil {
-		log.Printf("[server][CreateServer][db.Beginx] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		tx.Rollback()
+		log.Printf("[server][CreateServer][db.Create] error:%+v\n", err)
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
-	defer tx.Rollback()
-	tx.NamedExec(queries.QueryInsertServerData, &server)
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("[server][CreateServer][tx.Commit()] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
-	err = respondJSON(w, http.StatusOK, server)
+	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][CreateServer][respondJSON] error:%+v\n", err)
@@ -82,80 +97,86 @@ func CreateServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetAllServer(db *sqlx.DB, w http.ResponseWriter) {
+func GetAllServer(db *gorm.DB, c *gin.Context) {
 	servers := []model.Server{}
-	err := db.Select(&servers, queries.QueryAllserver)
+	err := db.Find(&servers).Error
 	if err != nil {
-		log.Printf("[server][GetAllServer][db.Select] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		log.Printf("[server][GetAllServer][db.Find] error:%+v\n", err)
+		respondError(c, http.StatusNotFound, err.Error())
 	}
 
-	err = respondJSON(w, http.StatusOK, servers)
+	err = respondJSON(c, http.StatusOK, servers)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][GetAllServer][respondJson] error:%+v\n", err)
 		return
 	}
-
 }
 
-func GetServer(db *sqlx.DB, w http.ResponseWriter, ps httprouter.Params) {
+func GetServer(db *gorm.DB, c *gin.Context) {
+	ps := c.Params
 	id, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		log.Printf("[server][GetServer][strconv.Atoi] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
-
-	server, err := getServerOr404(db, id, w)
+	server, err := getServerOr404(db, id, c)
 	if err != nil {
 		log.Printf("[server][GetServer][getServerOr404] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		respondError(c, http.StatusNotFound, err.Error())
 	}
 
-	err = respondJSON(w, http.StatusOK, server)
-	// Create log for the error
-	if err != nil {
-		log.Printf("[server][GetServer][respondJSON] error:%+v\n", err)
-		return
+	fmt.Printf("$$$:%+v", server)
+
+	if server != nil {
+		err = respondJSON(c, http.StatusOK, server)
+		// Create log for the error
+		if err != nil {
+			log.Printf("[server][GetServer][respondJSON] error:%+v\n", err)
+		}
 	}
+	return
 
 }
 
-func UpdateServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func UpdateServer(db *gorm.DB, c *gin.Context) {
+	r := c.Request
+	ps := c.Params
 	id, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		log.Printf("[server][UpdateServer][strconv.Atoi] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
 
 	// Begin transaction
-	tx, err := db.Beginx()
-	defer tx.Rollback()
-	if err != nil {
-		log.Printf("[server][UpdateServer][db.Beginx] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-	server, err := getServerOr404(db, id, w)
+	server, err := getServerOr404(db, id, c)
 	if err != nil {
 		log.Printf("[server][UpdateServer][getServerOr404] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		respondError(c, http.StatusNotFound, err.Error())
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&server); err != nil {
 		log.Printf("[server][UpdateServer][decoder.Decode] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
 	defer r.Body.Close()
 
-	tx.NamedExec(queries.QueryUpdateServer, &server)
-	err = tx.Commit()
+	err = tx.Model(&model.Server{}).Where("id = ?", server.ID).Updates(model.Server{IP: server.IP, Hostname: server.Hostname, Active: server.Active}).Error
+	tx.Commit()
 	if err != nil {
+		tx.Rollback()
 		log.Printf("[server][UpdateServer][tx.Commit] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
-	err = respondJSON(w, http.StatusOK, server)
+	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][UpdateServer][respondJSON] error:%+v\n", err)
@@ -164,42 +185,37 @@ func UpdateServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request, ps httpro
 
 }
 
-func DisableServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func DisableServer(db *gorm.DB, c *gin.Context) {
+	ps := c.Params
 	id, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		log.Printf("[server][DisableServer][strconv.Atoi] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
 	// Begin transaction
-	tx, err := db.Beginx()
-	defer tx.Rollback()
-	if err != nil {
-		log.Printf("[server][DisableServer][db.Beginx] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-	server, err := getServerOr404(db, id, w)
+	server, err := getServerOr404(db, id, c)
 	if err != nil {
 		log.Printf("[server][DisableServer][getServerOr404] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		respondError(c, http.StatusNotFound, err.Error())
 	}
 
 	server.Disable()
 
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&server); err != nil {
-		log.Printf("[server][DisableServer][decoder.Decode] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
-	}
-	defer r.Body.Close()
-
-	tx.NamedExec(queries.QueryUpdateServerStatus, &server)
-	err = tx.Commit()
+	err = tx.Model(&model.Server{}).Where("id = ?", server.ID).Update("active", server.Active).Error
+	tx.Commit()
 	if err != nil {
+		tx.Rollback()
 		log.Printf("[server][DisableServer][tx.Commit] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
-	err = respondJSON(w, http.StatusOK, server)
+	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][DisableServer][respondJSON] error:%+v\n", err)
@@ -208,79 +224,75 @@ func DisableServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request, ps httpr
 
 }
 
-func EnableServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func EnableServer(db *gorm.DB, c *gin.Context) {
+	ps := c.Params
 	id, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		log.Printf("[server][EnableServer][strconv.Atoi] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
 	// Begin transaction
-	tx, err := db.Beginx()
-	defer tx.Rollback()
-	if err != nil {
-		log.Printf("[server][EnableServer][db.Beginx] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-	server, err := getServerOr404(db, id, w)
+	server, err := getServerOr404(db, id, c)
 	if err != nil {
 		log.Printf("[server][EnableServer][getServerOr404] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		respondError(c, http.StatusNotFound, err.Error())
 	}
 
 	server.Enable()
 
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&server); err != nil {
-		log.Printf("[server][EnableServer][decoder.Decode] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
-	}
-	defer r.Body.Close()
-
-	tx.NamedExec(queries.QueryUpdateServerStatus, &server)
-	err = tx.Commit()
+	err = tx.Model(&model.Server{}).Where("id = ?", server.ID).Update("active", server.Active).Error
+	tx.Commit()
 	if err != nil {
+		tx.Rollback()
 		log.Printf("[server][EnableServer][tx.Commit] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
-	err = respondJSON(w, http.StatusOK, server)
+	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
 		log.Printf("[server][EnableServer][respondJSON] error:%+v\n", err)
 		return
 	}
-
 }
 
-func DeleteServer(db *sqlx.DB, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
+func DeleteServer(db *gorm.DB, c *gin.Context) {
+	ps := c.Params
 	id, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		log.Printf("[server][DeleteServer][strconv.Atoi] error:%+v\n", err)
-		respondError(w, http.StatusBadRequest, err.Error())
+		respondError(c, http.StatusBadRequest, err.Error())
 	}
 	// Begin transaction
-	tx, err := db.Beginx()
-	defer tx.Rollback()
-	if err != nil {
-		log.Printf("[server][DeleteServer][db.Beginx] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
-	_, err = getServerOr404(db, id, w)
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	_, err = getServerOr404(db, id, c)
 	if err != nil {
 		log.Printf("[server][DeleteServer][getServerOr404] error:%+v\n", err)
-		respondError(w, http.StatusNotFound, err.Error())
+		respondError(c, http.StatusNotFound, err.Error())
 	}
 
-	tx.MustExec(queries.QueryDeleteServer, id)
-	err = tx.Commit()
+	err = tx.Delete(&model.Server{}, id).Error
+	tx.Commit()
 	if err != nil {
+		tx.Rollback()
 		log.Printf("[server][DeleteServer][tx.Commit] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
-	err = respondJSON(w, http.StatusOK, nil)
+	err = respondJSON(c, http.StatusOK, nil)
 	if err != nil {
 		log.Printf("[server][DeleteServer][respondJSON] error:%+v\n", err)
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondError(c, http.StatusInternalServerError, err.Error())
 	}
 }

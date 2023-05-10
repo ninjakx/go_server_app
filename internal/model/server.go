@@ -1,22 +1,21 @@
 package model
 
 import (
-	"GO_APP/internal/queries"
-
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 )
 
 type Server struct {
-	Id       int    `db:"id"` // not needed as auto increment just for making testing easier including it
-	IP       string `db:"ip"`
-	Hostname string `db:"hostname"`
-	Active   bool   `db:"active"`
+	gorm.Model // Includes fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`
+	IP         string
+	Hostname   string
+	Active     bool
 }
 
-// DBMigrate will create and migrate the tables, and then make the some relationships if necessary
-func DBMigrate(db *sqlx.DB) *sqlx.DB {
-	db.MustExec(queries.CreateDB)
+func DBMigrate(db *gorm.DB) *gorm.DB {
+	// Auto migrate the models
+	db.AutoMigrate(&Server{})
+
 	return db
 }
 

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"GO_APP/internal/model"
-	"GO_APP/internal/queries"
 	"bytes"
 	"database/sql"
 	"encoding/json"
@@ -10,32 +9,58 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+
 	"github.com/stretchr/testify/assert"
 )
 
-// MockDB creates a mocked database and returns a sqlx.DB and a sqlmock.Sqlmock.
-func MockDB() (*sqlx.DB, sqlmock.Sqlmock, error) {
-	db, mock, err := sqlmock.New()
+type testResponseWriter struct {
+	*httptest.ResponseRecorder
+}
+
+func (w testResponseWriter) Header() http.Header {
+	return w.ResponseRecorder.Header()
+}
+
+func (w testResponseWriter) Write(b []byte) (int, error) {
+	return w.ResponseRecorder.Write(b)
+}
+
+func (w testResponseWriter) WriteHeader(statusCode int) {
+	w.ResponseRecorder.WriteHeader(statusCode)
+}
+
+// MockDB creates a mocked database and returns a *gorm.DB and a sqlmock.Sqlmock.
+func MockDB() (*gorm.DB, sqlmock.Sqlmock, *sql.DB, error) {
+	mockDB, mock, err := sqlmock.New()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, mockDB, err
 	}
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	return sqlxDB, mock, nil
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn:       mockDB,
+		DriverName: "postgres",
+	}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	if err != nil {
+		return nil, nil, mockDB, err
+	}
+	return gormDB, mock, mockDB, nil
 }
 
 func TestGetServerOr404(t *testing.T) {
-	db, mock, err := MockDB()
+	db, mock, dbmock, err := MockDB()
+	defer dbmock.Close()
 	if err != nil {
 		t.Fatalf("Error initializing mock database: %v", err)
 	}
-	defer db.Close()
-
 	type args struct {
 		id int
 	}
@@ -52,31 +77,34 @@ func TestGetServerOr404(t *testing.T) {
 		mock       func(*model.Server)
 	}
 
-	cols := []string{"id", "hostname", "ip"}
+	cols := []string{"ip", "hostname", "active"}
 	tests := []testCases{
 		{
 			name: "Existing Server",
 			args: args{
-				id: 10,
+				id: 1,
 			},
 			field: field{
 				server: &model.Server{
-					Id:       10,
-					Hostname: "Server1",
 					IP:       "192.168.0.1",
+					Hostname: "test-server",
+					Active:   true,
 				},
 			},
 			wantServer: &model.Server{
-				Id:       10,
-				Hostname: "Server1",
+				Hostname: "test-server",
 				IP:       "192.168.0.1",
+				Active:   true,
 			},
 
 			wantError:  nil,
 			wantStatus: http.StatusOK,
-			mock: func(serverDet *model.Server) {
-				rows := sqlmock.NewRows(cols).AddRow(serverDet.Id, serverDet.Hostname, serverDet.IP)
-				mock.ExpectQuery("SELECT \\* FROM Servers WHERE id=\\$1").WithArgs(10).WithArgs(serverDet.Id).WillReturnRows(rows)
+			mock: func(testServer *model.Server) {
+				id := 1
+				mock.ExpectQuery((`SELECT (.+) FROM "servers" WHERE id = (.+) LIMIT 1`)).
+					WithArgs(id).
+					WillReturnRows(sqlmock.NewRows(cols).
+						AddRow(testServer.IP, testServer.Hostname, testServer.Active))
 			},
 		},
 		{
@@ -86,17 +114,17 @@ func TestGetServerOr404(t *testing.T) {
 			},
 			field: field{
 				server: &model.Server{
-					Id:       10,
 					Hostname: "Server1",
 					IP:       "192.168.0.1",
+					Active:   true,
 				},
 			},
-			wantServer: &model.Server{},
+			wantServer: nil,
 
 			wantError:  errors.New("sql: no rows in result set"),
 			wantStatus: http.StatusNotFound,
 			mock: func(serverDet *model.Server) {
-				mock.ExpectQuery("SELECT \\* FROM Servers WHERE id=\\$1").WithArgs(10).WithArgs(serverDet.Id).WillReturnError(sql.ErrNoRows)
+				mock.ExpectQuery((`SELECT (.+) FROM "servers" WHERE id = (.+) LIMIT 1`)).WithArgs(10).WillReturnError(sql.ErrNoRows)
 			},
 		},
 	}
@@ -104,25 +132,28 @@ func TestGetServerOr404(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock(tt.field.server)
-			w := httptest.NewRecorder()
+			// Create the custom response writer
+			w := &testResponseWriter{httptest.NewRecorder()}
 
-			server, err := getServerOr404(db, tt.args.id, w)
+			// Create a new Gin context with the custom response writer
+			c, _ := gin.CreateTestContext(w)
+			server, err := getServerOr404(db, tt.args.id, c)
 
 			assert.Equal(t, tt.wantServer, server)
 			assert.Equal(t, tt.wantError, err)
-			assert.Equal(t, tt.wantStatus, w.Code)
 		})
 	}
 }
 
 func TestGetServerHostName(t *testing.T) {
-	db, mock, err := MockDB()
+	db, mock, dbmock, err := MockDB()
+	defer dbmock.Close()
+
 	if err != nil {
 		t.Fatalf("Error initializing mock database: %v", err)
 	}
-	defer db.Close()
 	type args struct {
-		ps httprouter.Params
+		c *gin.Context
 	}
 	type field struct {
 	}
@@ -139,7 +170,9 @@ func TestGetServerHostName(t *testing.T) {
 		{
 			name: "Get server hostname : status code -> 200",
 			args: args{
-				ps: httprouter.Params{httprouter.Param{Key: "thresh", Value: "50"}},
+				c: &gin.Context{
+					Params: gin.Params{gin.Param{Key: "thresh", Value: "50"}},
+				},
 			},
 			field:      field{},
 			want:       []string{"mta-prod-1", "mta-prod-2"},
@@ -147,14 +180,16 @@ func TestGetServerHostName(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"hostname"}).AddRow("mta-prod-1").AddRow("mta-prod-2")
 				mock.ExpectBegin()
-				mock.ExpectQuery(regexp.QuoteMeta(queries.QueryGetAllHostnameWithThresh)).WithArgs(50).WillReturnRows(rows)
+				mock.ExpectQuery("SELECT (.+)").WithArgs(50).WillReturnRows(rows)
 				mock.ExpectCommit()
 			},
 		},
 		{
 			name: "Get server hostname : bad request on thresh pass default value",
 			args: args{
-				ps: httprouter.Params{httprouter.Param{Key: "thresh", Value: ""}},
+				c: &gin.Context{
+					Params: gin.Params{gin.Param{Key: "thresh", Value: ""}},
+				},
 			},
 			field:      field{},
 			want:       []string{"mta-prod-1", "mta-prod-2"},
@@ -162,22 +197,24 @@ func TestGetServerHostName(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"hostname"}).AddRow("mta-prod-1").AddRow("mta-prod-2")
 				mock.ExpectBegin()
-				mock.ExpectQuery(regexp.QuoteMeta(queries.QueryGetAllHostnameWithThresh)).WithArgs(1).WillReturnRows(rows)
+				mock.ExpectQuery("SELECT (.+)").WithArgs(1).WillReturnRows(rows)
 				mock.ExpectCommit()
 			},
 		},
 		// {
 		// 	name: "Get server hostname : status code -> 404",
 		// 	args: args{
-		// 		ps: httprouter.Params{httprouter.Param{Key: "thresh", Value: "50"}},
+		// 		c: &gin.Context{
+		// 			Params: gin.Params{gin.Param{Key: "thresh", Value: ""}},
+		// 		},
 		// 	},
-		// 	field: field{},
-		// 	want:  []string{},
-
-		// 	wantStatus: http.StatusNotFound,
+		// 	field:      field{},
+		// 	want:       []string{"mta-prod-1", "mta-prod-2"},
+		// 	wantStatus: http.StatusInternalServerError,
 		// 	mock: func() {
 		// 		mock.ExpectBegin()
-		// 		mock.ExpectQuery(regexp.QuoteMeta(queries.QueryGetAllHostnameWithThresh)).WithArgs(50).WillReturnError(sql.ErrTxDone)
+		// 		mock.ExpectQuery("SELECT (.+)").WithArgs(1).WillReturnError(sql.ErrTxDone)
+		// 		mock.ExpectCommit()
 		// 	},
 		// },
 	}
@@ -186,9 +223,12 @@ func TestGetServerHostName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock()
 
-			w := httptest.NewRecorder()
+			w := &testResponseWriter{httptest.NewRecorder()}
+			// Create a new Gin context with the custom response writer
+			c, _ := gin.CreateTestContext(w)
+			c.Params = tt.args.c.Params
 
-			GetServerHostName(db, w, tt.args.ps)
+			GetServerHostName(db, c)
 			// Check the response status code
 			if w.Code != tt.wantStatus {
 				t.Errorf("Expected status code %v but got %v", tt.wantStatus, w.Code)
@@ -210,25 +250,28 @@ func TestGetServerHostName(t *testing.T) {
 
 func TestGetServer(t *testing.T) {
 	// Create a new mock database and HTTP request/response
-	db, mock, err := MockDB()
+	db, mock, dbmock, err := MockDB()
+	defer dbmock.Close()
 	if err != nil {
 		t.Fatalf("error creating mock database: %s", err)
 	}
-	defer db.Close()
 
-	w := httptest.NewRecorder()
+	w := &testResponseWriter{httptest.NewRecorder()}
 
+	// Create a new Gin context with the custom response writer
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	// Create expected server
-	expectedServer := &model.Server{Id: 10, Hostname: "Test Server"}
+	expectedServer := &model.Server{Hostname: "Test Server"}
 
 	// Set up database mock to return the expected server
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM Servers WHERE id=$1")).
+	mock.ExpectQuery(`SELECT (.+) FROM "servers" WHERE id = (.+) LIMIT 1`).
 		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "hostname"}).
-			AddRow(expectedServer.Id, expectedServer.Hostname))
+		WillReturnRows(sqlmock.NewRows([]string{"hostname"}).
+			AddRow(expectedServer.Hostname))
 
 	// Call the function being tested
-	GetServer(db, w, httprouter.Params{httprouter.Param{Key: "id", Value: "1"}})
+	GetServer(db, c)
 
 	// Check that the response status code is correct
 	if w.Code != http.StatusOK {
@@ -253,36 +296,38 @@ func TestGetServer(t *testing.T) {
 
 func TestGetAllServer(t *testing.T) {
 	// Create a new mock database and HTTP request/response
-	db, mock, err := MockDB()
+	db, mock, dbmock, err := MockDB()
+	defer dbmock.Close()
 	if err != nil {
 		t.Fatalf("error creating mock database: %s", err)
 	}
-	defer db.Close()
 
-	// req := httptest.NewRequest("GET", "/servers/1", nil)
-	w := httptest.NewRecorder()
+	w := &testResponseWriter{httptest.NewRecorder()}
+
+	// Create a new Gin context with the custom response writer
+	c, _ := gin.CreateTestContext(w)
 
 	// Create expected server
 	expectedServer := []model.Server{
 		{
-			Id: 10, Hostname: "Test Server", IP: "127.0.0.1", Active: true,
+			Hostname: "Test Server", IP: "127.0.0.1", Active: true,
 		},
 		{
-			Id: 11, Hostname: "Test Server", IP: "127.0.0.1", Active: true,
+			Hostname: "Test Server", IP: "127.0.0.1", Active: true,
 		},
 	}
 
-	cols := []string{"id", "hostname", "ip", "active"}
+	cols := []string{"hostname", "ip", "active"}
 	// Set up database mock to return the expected server
 	rows := sqlmock.NewRows(cols)
 	for i := range expectedServer {
-		rows.AddRow(expectedServer[i].Id, expectedServer[i].Hostname, expectedServer[i].IP, expectedServer[i].Active)
+		rows.AddRow(expectedServer[i].Hostname, expectedServer[i].IP, expectedServer[i].Active)
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(queries.QueryAllserver)).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT (.+) FROM "servers"`).WillReturnRows(rows)
 
 	// Call the function being tested
-	GetAllServer(db, w)
+	GetAllServer(db, c)
 
 	// Check that the response status code is correct
 	if w.Code != http.StatusOK {
@@ -306,206 +351,189 @@ func TestGetAllServer(t *testing.T) {
 }
 
 func TestCreateServer(t *testing.T) {
-	db, mock, _ := MockDB()
-	defer db.Close()
+	db, mock, dbmock, _ := MockDB()
+	defer dbmock.Close()
 	server := model.Server{
-		Id:       1,
 		IP:       "192.168.1.1",
 		Hostname: "test.com",
 		Active:   true,
 	}
 
+	cols := []string{"hostname", "ip", "active"}
 	// Expect a single insert query
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta("INSERT")).
-		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("INSERT (.+)").
+		WillReturnRows(
+			sqlmock.NewRows(cols).
+				AddRow(server.Hostname, server.IP, server.Active))
 	mock.ExpectCommit()
-
-	router := httprouter.New()
-	router.POST("/servers/create", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		CreateServer(db, w, r)
-	})
 
 	reqBody, err := json.Marshal(server)
 	if err != nil {
 		t.Fatal(err)
 	}
+	rr := httptest.NewRecorder()
 	req, err := http.NewRequest("POST", "/servers/create", bytes.NewBuffer(reqBody))
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Error creating request: %v", err)
 	}
-	rr := httptest.NewRecorder()
+	params := gin.Params{gin.Param{Key: "id", Value: "1"}}
+	context := gin.Context{Request: req, Params: params}
 
-	router.ServeHTTP(rr, req)
+	CreateServer(db, &context)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
-
 func TestUpdateServer(t *testing.T) {
-	db, mock, _ := MockDB()
-	defer db.Close()
+	db, mock, dbmock, _ := MockDB()
+	defer dbmock.Close()
 	server := model.Server{
-		Id:       1,
 		IP:       "192.168.1.1",
 		Hostname: "test.com",
 		Active:   true,
 	}
+	id := 1
 
 	mock.ExpectBegin()
-	mock.ExpectQuery("SELECT").WithArgs(server.Id).WillReturnRows(sqlmock.NewRows([]string{"id", "ip", "hostname", "active"}).AddRow(server.Id, server.IP, server.Hostname, server.Active))
-	mock.ExpectExec("UPDATE").WithArgs(server.IP, server.Hostname, server.Active, server.Id).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("SELECT").WithArgs(id).WillReturnRows(sqlmock.NewRows([]string{"ip", "hostname", "active"}).AddRow(server.IP, server.Hostname, server.Active))
+	mock.ExpectExec("UPDATE").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-
-	router := httprouter.New()
-	router.PUT("/servers/:id", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		UpdateServer(db, w, r, ps)
-	})
-
-	reqBody, err := json.Marshal(server)
+	body, err := json.Marshal(server)
 	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("PUT", "/servers/1", bytes.NewBuffer(reqBody))
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Error marshaling server: %v", err)
 	}
 	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	req, err := http.NewRequest("PUT", "/servers/1/update_server", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("Error creating request: %v", err)
 	}
+	params := gin.Params{gin.Param{Key: "id", Value: "1"}}
+	context := gin.Context{Request: req, Params: params}
 
+	UpdateServer(db, &context)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
 func TestDisableServer(t *testing.T) {
-	db, mock, _ := MockDB()
-	defer db.Close()
+	db, mock, dbmock, _ := MockDB()
+	defer dbmock.Close()
 	server := model.Server{
-		Id:       1,
 		IP:       "192.168.1.1",
 		Hostname: "test.com",
 		Active:   false,
 	}
 
+	id := 1
+
 	mock.ExpectBegin()
-	mock.ExpectQuery("SELECT").WithArgs(server.Id).WillReturnRows(sqlmock.NewRows([]string{"id", "ip", "hostname", "active"}).AddRow(server.Id, server.IP, server.Hostname, server.Active))
-	mock.ExpectExec(regexp.QuoteMeta("UPDATE Servers SET active=? WHERE id=?")).WithArgs(server.Active, server.Id).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("SELECT").WithArgs(id).WillReturnRows(sqlmock.NewRows([]string{"ip", "hostname", "active"}).AddRow(server.IP, server.Hostname, server.Active))
+	mock.ExpectExec("UPDATE").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	router := httprouter.New()
-	router.PUT("/servers/:id/disable", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		DisableServer(db, w, r, ps)
-	})
-
-	reqBody, err := json.Marshal(server)
+	body, err := json.Marshal(server)
 	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("PUT", "/servers/1/disable", bytes.NewBuffer(reqBody))
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Error marshaling server: %v", err)
 	}
 	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	req, err := http.NewRequest("PUT", "/servers/1/disable", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("Error creating request: %v", err)
 	}
+	params := gin.Params{gin.Param{Key: "id", Value: "1"}}
+	context := gin.Context{Request: req, Params: params}
 
+	DisableServer(db, &context)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
 func TestEnableServer(t *testing.T) {
-	db, mock, _ := MockDB()
-	defer db.Close()
+	db, mock, dbmock, _ := MockDB()
+	defer dbmock.Close()
 	server := model.Server{
-		Id:       1,
 		IP:       "192.168.1.1",
 		Hostname: "test.com",
-		Active:   true,
+		Active:   false,
 	}
 
+	id := 1
 	mock.ExpectBegin()
-	mock.ExpectQuery("SELECT").WithArgs(server.Id).WillReturnRows(sqlmock.NewRows([]string{"id", "ip", "hostname", "active"}).AddRow(server.Id, server.IP, server.Hostname, server.Active))
-	mock.ExpectExec(regexp.QuoteMeta("UPDATE Servers SET active=? WHERE id=?")).WithArgs(server.Active, server.Id).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("SELECT").WithArgs(id).WillReturnRows(sqlmock.NewRows([]string{"ip", "hostname", "active"}).AddRow(server.IP, server.Hostname, server.Active))
+	mock.ExpectExec("UPDATE").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	router := httprouter.New()
-	router.PUT("/servers/:id/enable", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		EnableServer(db, w, r, ps)
-	})
-
-	reqBody, err := json.Marshal(server)
+	body, err := json.Marshal(server)
 	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("PUT", "/servers/1/enable", bytes.NewBuffer(reqBody))
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Error marshaling server: %v", err)
 	}
 	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	req, err := http.NewRequest("PUT", "/servers/1/enable", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("Error creating request: %v", err)
 	}
+	params := gin.Params{gin.Param{Key: "id", Value: "1"}}
+	context := gin.Context{Request: req, Params: params}
 
+	EnableServer(db, &context)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
 func TestDeleteServer(t *testing.T) {
-	db, mock, _ := MockDB()
-	defer db.Close()
+	db, mock, dbmock, _ := MockDB()
+	defer dbmock.Close()
 	server := model.Server{
-		Id:       1,
 		IP:       "192.168.1.1",
 		Hostname: "test.com",
 		Active:   true,
 	}
 
+	id := 1
+
 	mock.ExpectBegin()
-	mock.ExpectQuery("SELECT").WithArgs(server.Id).WillReturnRows(sqlmock.NewRows([]string{"id", "ip", "hostname", "active"}).AddRow(server.Id, server.IP, server.Hostname, server.Active))
-	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM Servers WHERE id=$1;")).WithArgs(server.Id).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("SELECT").WithArgs(id).WillReturnRows(sqlmock.NewRows([]string{"id", "ip", "hostname", "active"}).AddRow(id, server.IP, server.Hostname, server.Active))
+	mock.ExpectExec("UPDATE").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	router := httprouter.New()
-	router.DELETE("/servers/:id", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		DeleteServer(db, w, r, ps)
-	})
-
-	reqBody, err := json.Marshal(server)
+	body, err := json.Marshal(server)
 	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("DELETE", "/servers/1", bytes.NewBuffer(reqBody))
-	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Error marshaling server: %v", err)
 	}
 	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	req, err := http.NewRequest("DELETE", "/servers/1", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("Error creating request: %v", err)
 	}
+	params := gin.Params{gin.Param{Key: "id", Value: "1"}}
+	context := gin.Context{Request: req, Params: params}
 
+	DeleteServer(db, &context)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}

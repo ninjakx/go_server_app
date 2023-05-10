@@ -8,14 +8,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // App has router and db instances
 type App struct {
-	Router *httprouter.Router //mux.Router
-	DB     *sqlx.DB
+	Router *gin.Engine //mux.Router
+	DB     *gorm.DB
 }
 
 // App initialize with predefined configuration
@@ -28,7 +29,8 @@ func (a *App) Initialize(config *config.Config) {
 		config.DB.DBname,
 	)
 
-	db, err := sqlx.Connect(config.DB.Dialect, dbURI)
+	// db, err := sqlx.Connect(config.DB.Dialect, dbURI)
+	db, err := gorm.Open(postgres.Open(dbURI))
 	if err != nil {
 		log.Fatal("Could not connect database")
 	} else {
@@ -36,7 +38,7 @@ func (a *App) Initialize(config *config.Config) {
 	}
 
 	a.DB = model.DBMigrate(db)
-	a.Router = httprouter.New()
+	a.Router = gin.New()
 	a.SetRouters()
 }
 
@@ -56,36 +58,36 @@ func (a *App) SetRouters() {
 }
 
 // Handlers to manage Server Data
-func (a *App) CreateServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.CreateServer(a.DB, w, r)
+func (a *App) CreateServer(c *gin.Context) {
+	handler.CreateServer(a.DB, c)
 }
 
-func (a *App) GetServerHostname(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.GetServerHostName(a.DB, w, ps)
+func (a *App) GetServerHostname(c *gin.Context) {
+	handler.GetServerHostName(a.DB, c)
 }
 
-func (a *App) GetServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.GetServer(a.DB, w, ps)
+func (a *App) GetServer(c *gin.Context) {
+	handler.GetServer(a.DB, c)
 }
 
-func (a *App) GetAllServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.GetAllServer(a.DB, w)
+func (a *App) GetAllServer(c *gin.Context) {
+	handler.GetAllServer(a.DB, c)
 }
 
-func (a *App) UpdateServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.UpdateServer(a.DB, w, r, ps)
+func (a *App) UpdateServer(c *gin.Context) {
+	handler.UpdateServer(a.DB, c)
 }
 
-func (a *App) DisableServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.DisableServer(a.DB, w, r, ps)
+func (a *App) DisableServer(c *gin.Context) {
+	handler.DisableServer(a.DB, c)
 }
 
-func (a *App) EnableServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.EnableServer(a.DB, w, r, ps)
+func (a *App) EnableServer(c *gin.Context) {
+	handler.EnableServer(a.DB, c)
 }
 
-func (a *App) DeleteServer(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	handler.DeleteServer(a.DB, w, r, ps)
+func (a *App) DeleteServer(c *gin.Context) {
+	handler.DeleteServer(a.DB, c)
 }
 
 // Run the app on it's router

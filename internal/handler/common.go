@@ -3,24 +3,23 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 // respondJSON makes the response with payload as json format
-func respondJSON(w http.ResponseWriter, status int, payload interface{}) error {
+func respondJSON(c *gin.Context, status int, payload interface{}) (err error) {
 	response, err := json.Marshal(payload)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return err
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	w.Write([]byte(response))
-
-	return nil
+	c.Header("Content-Type", "application/json")
+	c.String(status, string(response))
+	return
 }
 
 // respondError makes the error response with payload as json format
-func respondError(w http.ResponseWriter, code int, message string) {
-	respondJSON(w, code, map[string]string{"error": message})
+func respondError(c *gin.Context, code int, message string) {
+	respondJSON(c, code, map[string]string{"error": message})
 }

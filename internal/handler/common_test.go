@@ -5,15 +5,20 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestRespondJSON_(t *testing.T) {
-	w := httptest.NewRecorder()
+	w := &testResponseWriter{httptest.NewRecorder()}
+
+	// Create a new Gin context with the custom response writer
+	c, _ := gin.CreateTestContext(w)
 	status := http.StatusOK
 	payload := map[string]string{"message": "dummy message"}
 
 	// test case 1: valid payload
-	err := respondJSON(w, status, payload)
+	err := respondJSON(c, status, payload)
 	if err != nil {
 		t.Fatalf("Error should be nil but got %v", err)
 	}
@@ -28,18 +33,20 @@ func TestRespondJSON_(t *testing.T) {
 	}
 
 	// test case 2: invalid payload
-	err = respondJSON(w, http.StatusOK, func() {})
+	err = respondJSON(c, http.StatusOK, func() {})
 	if err == nil {
 		t.Error("respondJSON should return an error for an invalid payload")
 	}
 }
 
 func TestRespondError(t *testing.T) {
-	w := httptest.NewRecorder()
+	w := &testResponseWriter{httptest.NewRecorder()}
+	// Create a new Gin context with the custom response writer
+	c, _ := gin.CreateTestContext(w)
 	code := http.StatusBadRequest
 	message := "invalid input"
 
-	respondError(w, code, message)
+	respondError(c, code, message)
 
 	expectedResponse, _ := json.Marshal(map[string]string{"error": message})
 

@@ -77,6 +77,6 @@ WHERE  m.id = sub.id;
 
 **Code coverage:**
 
-Due to logging the error: Unit test coverage can't be more than `61.6%`. It's good to log the error so introducing those will reduce the coverage as can be seen from the image (red part-> not covered in unit test)
+Due to logging the error: Unit test coverage can't be more than `61.6%`. It's good to log the error so introducing those will reduce the coverage as can be seen from the image (red part-> not covered in unit test). Have to add test cases to increase the coverage for errors.
 
 ![](https://github.com/ninjakx/go_server_app/blob/main/Images4Readme/code_coverage.png?raw=true)

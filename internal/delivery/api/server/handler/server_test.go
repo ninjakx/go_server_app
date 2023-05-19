@@ -404,6 +404,7 @@ func TestUpdateServer(t *testing.T) {
 	mock.ExpectQuery("SELECT").WithArgs(id).WillReturnRows(sqlmock.NewRows([]string{"ip", "hostname", "active"}).AddRow(server.IP, server.Hostname, server.Active))
 	mock.ExpectExec("UPDATE").WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+
 	body, err := json.Marshal(server)
 	if err != nil {
 		t.Fatalf("Error marshaling server: %v", err)

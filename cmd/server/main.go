@@ -1,14 +1,14 @@
 package main
 
 import (
-	"GO_APP/internal/api"
 	"GO_APP/config"
+	api "GO_APP/internal/delivery"
 )
 
 func main() {
 	config := config.GetConfig()
 
 	app := &api.App{}
-	app.Initialize(config)
+	app.Init(config)
 	app.Run(":8004")
 }

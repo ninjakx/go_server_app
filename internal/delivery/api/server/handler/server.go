@@ -34,11 +34,11 @@ func GetServerHostName(db *gorm.DB, c *gin.Context) {
 
 	// Begin transaction
 	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		tx.Rollback()
+	// 	}
+	// }()
 
 	hostnames := []string{}
 	err = tx.Table("servers").
@@ -49,6 +49,7 @@ func GetServerHostName(db *gorm.DB, c *gin.Context) {
 	tx.Commit()
 
 	if err != nil {
+		// tx.Rollback()
 		log.Printf("[server][GetServerHostName][db.Table] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
@@ -82,14 +83,14 @@ func CreateServer(db *gorm.DB, c *gin.Context) {
 	}()
 
 	err := tx.Create(&server).Error
-	tx.Commit()
-
 	if err != nil {
 		tx.Rollback()
 		log.Printf("[server][CreateServer][db.Create] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	tx.Commit()
+
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
@@ -172,13 +173,13 @@ func UpdateServer(db *gorm.DB, c *gin.Context) {
 	defer r.Body.Close()
 
 	err = tx.Model(&model.Server{}).Where("id = ?", server.ID).Updates(model.Server{IP: server.IP, Hostname: server.Hostname, Active: server.Active}).Error
-	tx.Commit()
 	if err != nil {
 		tx.Rollback()
 		log.Printf("[server][UpdateServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	tx.Commit()
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
@@ -213,13 +214,13 @@ func DisableServer(db *gorm.DB, c *gin.Context) {
 	server.Disable()
 
 	err = tx.Model(&model.Server{}).Where("id = ?", server.ID).Update("active", server.Active).Error
-	tx.Commit()
 	if err != nil {
 		tx.Rollback()
 		log.Printf("[server][DisableServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	tx.Commit()
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
@@ -254,13 +255,13 @@ func EnableServer(db *gorm.DB, c *gin.Context) {
 	server.Enable()
 
 	err = tx.Model(&model.Server{}).Where("id = ?", server.ID).Update("active", server.Active).Error
-	tx.Commit()
 	if err != nil {
 		tx.Rollback()
 		log.Printf("[server][EnableServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	tx.Commit()
 	err = respondJSON(c, http.StatusOK, server)
 	// Create log for the error
 	if err != nil {
@@ -292,13 +293,13 @@ func DeleteServer(db *gorm.DB, c *gin.Context) {
 	}
 
 	err = tx.Delete(&model.Server{}, id).Error
-	tx.Commit()
 	if err != nil {
 		tx.Rollback()
 		log.Printf("[server][DeleteServer][tx.Commit] error:%+v\n", err)
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	tx.Commit()
 	err = respondJSON(c, http.StatusOK, nil)
 	if err != nil {
 		log.Printf("[server][DeleteServer][respondJSON] error:%+v\n", err)

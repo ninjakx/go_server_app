@@ -6,8 +6,8 @@ import (
 )
 
 type Server struct {
-	gorm.Model // Includes fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`
-	IP         string
+	gorm.Model        // Includes fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`
+	IP         string `json:"IP" validate:"ip_address"`
 	Hostname   string
 	Active     bool
 }

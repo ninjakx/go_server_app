@@ -9,6 +9,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type testResponseWriter struct {
+	*httptest.ResponseRecorder
+}
+
+func (w testResponseWriter) Header() http.Header {
+	return w.ResponseRecorder.Header()
+}
+
+func (w testResponseWriter) Write(b []byte) (int, error) {
+	return w.ResponseRecorder.Write(b)
+}
+
+func (w testResponseWriter) WriteHeader(statusCode int) {
+	w.ResponseRecorder.WriteHeader(statusCode)
+}
+
 func TestRespondJSON_(t *testing.T) {
 	w := &testResponseWriter{httptest.NewRecorder()}
 

@@ -15,6 +15,7 @@ type Server struct {
 func DBMigrate(db *gorm.DB) *gorm.DB {
 	// Auto migrate the models
 	db.AutoMigrate(&Server{})
+	db.AutoMigrate(&User{})
 
 	return db
 }

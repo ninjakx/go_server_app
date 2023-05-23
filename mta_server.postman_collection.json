@@ -6,31 +6,11 @@
 	},
 	"item": [
 		{
-			"name": "Create Server",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"Ip\":\"127.0.0.6\",\n\t\"Hostname\":\"mta-prod-3\",\n\t\"Active\": false\n}"
-				},
-				"url": {
-					"raw": "http://localhost:8004/servers/create",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8004",
-					"path": [
-						"servers",
-						"create"
-					]
-				}
-			},
-			"response": [
+			"name": "Server API",
+			"item": [
 				{
-					"name": "Server created",
-					"originalRequest": {
+					"name": "Create Server",
+					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
@@ -50,57 +30,54 @@
 							]
 						}
 					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
+					"response": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Date",
-							"value": "Wed, 10 May 2023 15:38:34 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "175"
-						}
-					],
-					"cookie": [],
-					"body": "{\n    \"ID\": 6,\n    \"CreatedAt\": \"2023-05-10T21:08:34.274545+05:30\",\n    \"UpdatedAt\": \"2023-05-10T21:08:34.274545+05:30\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.6\",\n    \"Hostname\": \"mta-prod-3\",\n    \"Active\": false\n}"
-				}
-			]
-		},
-		{
-			"name": "Get Hostname by thresh",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8004/servers/get_hostname/:thresh",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8004",
-					"path": [
-						"servers",
-						"get_hostname",
-						":thresh"
-					],
-					"variable": [
-						{
-							"key": "thresh",
-							"value": "1"
+							"name": "Server created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"Ip\":\"127.0.0.6\",\n\t\"Hostname\":\"mta-prod-3\",\n\t\"Active\": false\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8004/servers/create",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"servers",
+										"create"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 15:38:34 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "175"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"ID\": 6,\n    \"CreatedAt\": \"2023-05-10T21:08:34.274545+05:30\",\n    \"UpdatedAt\": \"2023-05-10T21:08:34.274545+05:30\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.6\",\n    \"Hostname\": \"mta-prod-3\",\n    \"Active\": false\n}"
 						}
 					]
-				}
-			},
-			"response": [
+				},
 				{
-					"name": "Hostname by thresh",
-					"originalRequest": {
+					"name": "Get Hostname by thresh",
+					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
@@ -123,88 +100,57 @@
 							]
 						}
 					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
+					"response": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Date",
-							"value": "Wed, 10 May 2023 15:40:52 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "27"
-						}
-					],
-					"cookie": [],
-					"body": "[\n    \"mta-prod-3\",\n    \"mta-prod-1\"\n]"
-				}
-			]
-		},
-		{
-			"name": "Get server by id",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8004/server/1",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8004",
-					"path": [
-						"server",
-						"1"
-					]
-				}
-			},
-			"response": [
-				{
-					"name": "Not found",
-					"originalRequest": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8004/server/20",
-							"protocol": "http",
-							"host": [
-								"localhost"
+							"name": "Hostname by thresh",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8004/servers/get_hostname/:thresh",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"servers",
+										"get_hostname",
+										":thresh"
+									],
+									"variable": [
+										{
+											"key": "thresh",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 15:40:52 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "27"
+								}
 							],
-							"port": "8004",
-							"path": [
-								"server",
-								"20"
-							]
+							"cookie": [],
+							"body": "[\n    \"mta-prod-3\",\n    \"mta-prod-1\"\n]"
 						}
-					},
-					"status": "Not Found",
-					"code": 404,
-					"_postman_previewlanguage": "json",
-					"header": [
-						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Date",
-							"value": "Wed, 10 May 2023 15:42:05 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "28"
-						}
-					],
-					"cookie": [],
-					"body": "{\n    \"error\": \"record not found\"\n}"
+					]
 				},
 				{
-					"name": "Found",
-					"originalRequest": {
+					"name": "Get server by id",
+					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
@@ -220,51 +166,88 @@
 							]
 						}
 					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
+					"response": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
+							"name": "Not found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8004/server/20",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"server",
+										"20"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 15:42:05 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "28"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"record not found\"\n}"
 						},
 						{
-							"key": "Date",
-							"value": "Wed, 10 May 2023 15:42:41 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "174"
+							"name": "Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8004/server/1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"server",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 15:42:41 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "174"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"ID\": 1,\n    \"CreatedAt\": \"2023-05-10T21:07:33.904808+05:30\",\n    \"UpdatedAt\": \"2023-05-10T21:07:33.904808+05:30\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.1\",\n    \"Hostname\": \"mta-prod-1\",\n    \"Active\": true\n}"
 						}
-					],
-					"cookie": [],
-					"body": "{\n    \"ID\": 1,\n    \"CreatedAt\": \"2023-05-10T21:07:33.904808+05:30\",\n    \"UpdatedAt\": \"2023-05-10T21:07:33.904808+05:30\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.1\",\n    \"Hostname\": \"mta-prod-1\",\n    \"Active\": true\n}"
-				}
-			]
-		},
-		{
-			"name": "Set Server Activity to True",
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8004/servers/4/enable",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8004",
-					"path": [
-						"servers",
-						"4",
-						"enable"
 					]
-				}
-			},
-			"response": [
+				},
 				{
 					"name": "Set Server Activity to True",
-					"originalRequest": {
+					"request": {
 						"method": "PUT",
 						"header": [],
 						"url": {
@@ -281,50 +264,51 @@
 							]
 						}
 					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
+					"response": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Date",
-							"value": "Mon, 08 May 2023 18:52:00 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "150"
+							"name": "Set Server Activity to True",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8004/servers/4/enable",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"servers",
+										"4",
+										"enable"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 08 May 2023 18:52:00 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "150"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"ID\": 4,\n    \"CreatedAt\": \"0001-01-01T00:00:00Z\",\n    \"UpdatedAt\": \"0001-01-01T00:00:00Z\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.4\",\n    \"Hostname\": \"mta-prod-2\",\n    \"Active\": true\n}"
 						}
-					],
-					"cookie": [],
-					"body": "{\n    \"ID\": 4,\n    \"CreatedAt\": \"0001-01-01T00:00:00Z\",\n    \"UpdatedAt\": \"0001-01-01T00:00:00Z\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.4\",\n    \"Hostname\": \"mta-prod-2\",\n    \"Active\": true\n}"
-				}
-			]
-		},
-		{
-			"name": "Delete a server by id",
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8004/servers/40",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8004",
-					"path": [
-						"servers",
-						"40"
 					]
-				}
-			},
-			"response": [
+				},
 				{
-					"name": "Not found",
-					"originalRequest": {
+					"name": "Delete a server by id",
+					"request": {
 						"method": "DELETE",
 						"header": [],
 						"url": {
@@ -340,51 +324,50 @@
 							]
 						}
 					},
-					"status": "Not Found",
-					"code": 404,
-					"_postman_previewlanguage": "json",
-					"header": [
+					"response": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Date",
-							"value": "Wed, 10 May 2023 15:55:05 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "28"
+							"name": "Not found",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8004/servers/40",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"servers",
+										"40"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 15:55:05 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "28"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"record not found\"\n}"
 						}
-					],
-					"cookie": [],
-					"body": "{\n    \"error\": \"record not found\"\n}"
-				}
-			]
-		},
-		{
-			"name": "Set Server Activity to False",
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8004/servers/5/disable",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8004",
-					"path": [
-						"servers",
-						"5",
-						"disable"
 					]
-				}
-			},
-			"response": [
+				},
 				{
 					"name": "Set Server Activity to False",
-					"originalRequest": {
+					"request": {
 						"method": "PUT",
 						"header": [],
 						"url": {
@@ -401,25 +384,393 @@
 							]
 						}
 					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
+					"response": [
 						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Date",
-							"value": "Wed, 10 May 2023 15:56:48 GMT"
-						},
-						{
-							"key": "Content-Length",
-							"value": "175"
+							"name": "Set Server Activity to False",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8004/servers/5/disable",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"servers",
+										"5",
+										"disable"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 15:56:48 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "175"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"ID\": 5,\n    \"CreatedAt\": \"2023-05-10T21:08:29.339723+05:30\",\n    \"UpdatedAt\": \"2023-05-10T21:08:29.339723+05:30\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.5\",\n    \"Hostname\": \"mta-prod-2\",\n    \"Active\": false\n}"
 						}
-					],
-					"cookie": [],
-					"body": "{\n    \"ID\": 5,\n    \"CreatedAt\": \"2023-05-10T21:08:29.339723+05:30\",\n    \"UpdatedAt\": \"2023-05-10T21:08:29.339723+05:30\",\n    \"DeletedAt\": null,\n    \"IP\": \"127.0.0.5\",\n    \"Hostname\": \"mta-prod-2\",\n    \"Active\": false\n}"
+					]
+				}
+			]
+		},
+		{
+			"name": "Cron API",
+			"item": [
+				{
+					"name": "Start Scheduler",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8005/scheduler/start",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8005",
+							"path": [
+								"scheduler",
+								"start"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Start Scheduler",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8005/scheduler/start",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8005",
+									"path": [
+										"scheduler",
+										"start"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "plain",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 18 May 2023 15:05:47 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "Cron job started"
+						}
+					]
+				},
+				{
+					"name": "Stop Scheduler",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8005/scheduler/stop",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8005",
+							"path": [
+								"scheduler",
+								"stop"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Stop Scheduler",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8005/scheduler/stop",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8005",
+									"path": [
+										"scheduler",
+										"stop"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "plain",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 22 May 2023 11:59:27 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "26"
+								}
+							],
+							"cookie": [],
+							"body": "No active cron job to stop"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "User Auth",
+			"item": [
+				{
+					"name": "User Registeration",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Mukesh Murugan\",\n    \"username\": \"mukesh.murugan\",\n    \"email\": \"mukesh@go.com\",\n    \"password\": \"123465789\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8004/user/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8004",
+							"path": [
+								"user",
+								"register"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "User Registeration",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Mukesh Murugan\",\n    \"username\": \"mukesh.murugan\",\n    \"email\": \"mukesh@go.com\",\n    \"password\": \"123465789\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8004/user/register",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"user",
+										"register"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 23 May 2023 05:35:44 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "64"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"email\": \"mukesh@go.com\",\n    \"userId\": 1,\n    \"username\": \"mukesh.murugan\"\n}"
+						}
+					]
+				},
+				{
+					"name": "User Token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "    \n{\n    \"email\": \"mukesh@go.com\",\n    \"password\": \"123465789\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8004/token",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8004",
+							"path": [
+								"token"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "User Token",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "    \n{\n    \"email\": \"mukesh@go.com\",\n    \"password\": \"123465789\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8004/token",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"token"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 23 May 2023 05:47:31 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "187"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im11a2VzaC5tdXJ1Z2FuIiwiZW1haWwiOiJtdWtlc2hAZ28uY29tIiwiZXhwIjoxNjg0ODI0NDUxfQ.rfYDtF1NmmOzpgaqi7d9TkKFU__-KpSRfVQ8i3uu3UE\"\n}"
+						}
+					]
+				},
+				{
+					"name": "JWT authorized ping",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default"
+							},
+							{
+								"key": "Authorization",
+								"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im11a2VzaC5tdXJ1Z2FuIiwiZW1haWwiOiJtdWtlc2hAZ28uY29tIiwiZXhwIjoxNjg0ODI0NDUxfQ.rfYDtF1NmmOzpgaqi7d9TkKFU__-KpSRfVQ8i3uu3UE",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8004/user/auth/secured/ping",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8004",
+							"path": [
+								"user",
+								"auth",
+								"secured",
+								"ping"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "JWT authorized ping",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "default"
+									},
+									{
+										"key": "Authorization",
+										"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im11a2VzaC5tdXJ1Z2FuIiwiZW1haWwiOiJtdWtlc2hAZ28uY29tIiwiZXhwIjoxNjg0ODI0NDUxfQ.rfYDtF1NmmOzpgaqi7d9TkKFU__-KpSRfVQ8i3uu3UE",
+										"type": "default"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:8004/secured/ping",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8004",
+									"path": [
+										"secured",
+										"ping"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 23 May 2023 05:55:54 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "18"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"pong\"\n}"
+						}
+					]
 				}
 			]
 		}

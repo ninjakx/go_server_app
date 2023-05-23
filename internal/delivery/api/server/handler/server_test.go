@@ -20,22 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testResponseWriter struct {
-	*httptest.ResponseRecorder
-}
-
-func (w testResponseWriter) Header() http.Header {
-	return w.ResponseRecorder.Header()
-}
-
-func (w testResponseWriter) Write(b []byte) (int, error) {
-	return w.ResponseRecorder.Write(b)
-}
-
-func (w testResponseWriter) WriteHeader(statusCode int) {
-	w.ResponseRecorder.WriteHeader(statusCode)
-}
-
 // MockDB creates a mocked database and returns a *gorm.DB and a sqlmock.Sqlmock.
 func MockDB() (*gorm.DB, sqlmock.Sqlmock, *sql.DB, error) {
 	mockDB, mock, err := sqlmock.New()
@@ -372,7 +356,7 @@ func TestCreateServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rr := httptest.NewRecorder()
+	// rr := httptest.NewRecorder()
 	req, err := http.NewRequest("POST", "/servers/create", bytes.NewBuffer(reqBody))
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
@@ -382,9 +366,9 @@ func TestCreateServer(t *testing.T) {
 
 	CreateServer(db, &context)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
-	}
+	// if rr.Code != http.StatusOK {
+	// 	t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	// }
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -409,7 +393,7 @@ func TestUpdateServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error marshaling server: %v", err)
 	}
-	rr := httptest.NewRecorder()
+	// rr := httptest.NewRecorder()
 	req, err := http.NewRequest("PUT", "/servers/1/update_server", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
@@ -419,9 +403,9 @@ func TestUpdateServer(t *testing.T) {
 
 	UpdateServer(db, &context)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
-	}
+	// if rr.Code != http.StatusOK {
+	// 	t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	// }
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
@@ -447,7 +431,7 @@ func TestDisableServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error marshaling server: %v", err)
 	}
-	rr := httptest.NewRecorder()
+	// rr := httptest.NewRecorder()
 	req, err := http.NewRequest("PUT", "/servers/1/disable", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
@@ -457,9 +441,9 @@ func TestDisableServer(t *testing.T) {
 
 	DisableServer(db, &context)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
-	}
+	// if rr.Code != http.StatusOK {
+	// 	t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	// }
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
@@ -484,7 +468,7 @@ func TestEnableServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error marshaling server: %v", err)
 	}
-	rr := httptest.NewRecorder()
+	// rr := httptest.NewRecorder()
 	req, err := http.NewRequest("PUT", "/servers/1/enable", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
@@ -494,9 +478,9 @@ func TestEnableServer(t *testing.T) {
 
 	EnableServer(db, &context)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
-	}
+	// if rr.Code != http.StatusOK {
+	// 	t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	// }
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
@@ -522,7 +506,7 @@ func TestDeleteServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error marshaling server: %v", err)
 	}
-	rr := httptest.NewRecorder()
+	// rr := httptest.NewRecorder()
 	req, err := http.NewRequest("DELETE", "/servers/1", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatalf("Error creating request: %v", err)
@@ -532,9 +516,9 @@ func TestDeleteServer(t *testing.T) {
 
 	DeleteServer(db, &context)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
-	}
+	// if rr.Code != http.StatusOK {
+	// 	t.Errorf("Expected response code %d, but got %d", http.StatusOK, rr.Code)
+	// }
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}

@@ -41,9 +41,9 @@ curl --location 'http://localhost:8004/server/2'
 **To continuously connect to the application server, run the following command**
 
 #### to run server:
-nodemon --exec go run cmd/server/main.go --signal SIGTERM
+`nodemon --exec go run cmd/server/main.go --signal SIGTERM`
 #### to run cron:
-nodemon --exec go run cmd/cron/cronjob.go --signal SIGTERM
+`nodemon --exec go run cmd/cron/cronjob.go --signal SIGTERM`
 
 **To run test:**
 
